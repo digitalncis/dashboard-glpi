@@ -64,7 +64,7 @@ STATUS_MAPPING = {
 
 DEFAULT_FILTERS = {
     'periodo_dias': 30,
-    'limite_resultados': 100
+    'limite_resultados': 365
 }
 
 # ==============================================

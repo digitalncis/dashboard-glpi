@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Chamados GLPI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; }
+        .chart-card, .filter-card { background-color: #161b22; border: 1px solid #30363d; transition: all 0.3s ease-in-out; }
+        .metric-card { background-color: #161b22; border: 1px solid #30363d; border-left-width: 4px; transition: all 0.3s ease-in-out; }
+        .metric-card:hover, .chart-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); border-color: #3B82F6; }
+        .filter-input { background-color: #0d1117; border-color: #30363d; }
+        .filter-input::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.2); border-top-color: #3B82F6; animation: spin 1s linear infinite; }
+        .no-data-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 200px; color: #6b7280; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="container mx-auto">
+        <header class="mb-8 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center">
+                <img src="{{ url_for('static', filename='images/LogoGLPI.webp') }}" alt="Logo GLPI" class="h-20 mr-4">
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-white">Dashboard</h1>
+                    <p class="text-gray-400 mt-1">Análise de chamados em tempo real.</p>
+                </div>
+            </div>
+            <div id="last-updated" class="text-sm text-gray-500 mt-4 md:mt-0"></div>
+        </header>
+
+        <div class="mb-8 p-4 rounded-lg filter-card flex flex-wrap gap-4 items-center justify-center shadow-lg">
+            <div>
+                <label for="filter-requisitante" class="block text-sm font-medium text-gray-400 mb-1">Requisitante:</label>
+                <input type="text" id="filter-requisitante" class="filter-input w-44 rounded-md p-2 text-white placeholder-gray-500" placeholder="Nome...">
+            </div>
+            <div>
+                <label for="filter-tecnico" class="block text-sm font-medium text-gray-400 mb-1">Técnico:</label>
+                <input type="text" id="filter-tecnico" class="filter-input w-44 rounded-md p-2 text-white placeholder-gray-500" placeholder="Nome...">
+            </div>
+            <div>
+                <label for="filter-status" class="block text-sm font-medium text-gray-400 mb-1">Status:</label>
+                <select id="filter-status" class="filter-input w-44 rounded-md p-2 text-white">
+                    <option value="">Todos</option>
+                    <option value="Novo">Novo</option>
+                    <option value="Em Andamento (Atribuído)">Em Andamento (Atribuído)</option>
+                    <option value="Pendente">Pendente</option>
+                    <option value="Solucionado">Solucionado</option>
+                    <option value="Fechado">Fechado</option>
+                </select>
+            </div>
+            <div>
+                <label for="filter-start-date" class="block text-sm font-medium text-gray-400 mb-1">Data Início:</label>
+                <input type="date" id="filter-start-date" class="filter-input w-44 rounded-md p-2 text-white">
+            </div>
+             <div>
+                <label for="filter-end-date" class="block text-sm font-medium text-gray-400 mb-1">Data Fim:</label>
+                <input type="date" id="filter-end-date" class="filter-input w-44 rounded-md p-2 text-white">
+            </div>
+             <div class="self-end pt-5">
+                <button id="clear-filters" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                    <i class="fas fa-times mr-2"></i>Limpar
+                </button>
+            </div>
+        </div>
+
+        <div id="metrics-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6 mb-8"></div>
+        
+        <div class="mb-6">
+            <div class="chart-card p-4 rounded-lg shadow-lg flex flex-col h-full">
+                <h2 class="text-xl font-semibold mb-4 text-white"><i class="fas fa-calendar-alt mr-2 text-blue-400"></i>Volume de Chamados por Mês</h2>
+                <div class="relative flex-grow" style="min-height: 300px;">
+                    <canvas id="chamadosPorMesChart"></canvas>
+                    <div id="chamadosPorMesChart-no-data" class="no-data-placeholder hidden">Nenhum dado para exibir</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="chart-card p-4 rounded-lg shadow-lg flex flex-col h-full"><h2 class="text-xl font-semibold mb-4 text-white"><i class="fas fa-tasks mr-2 text-yellow-400"></i>Chamados por Status</h2><div class="relative flex-grow"><canvas id="tiposChart"></canvas><div id="tiposChart-no-data" class="no-data-placeholder hidden">Nenhum dado</div></div></div>
+            <div class="chart-card p-4 rounded-lg shadow-lg flex flex-col h-full"><h2 class="text-xl font-semibold mb-4 text-white"><i class="fas fa-map-marker-alt mr-2 text-blue-400"></i>Top 5 Chamados por Localização</h2><div class="relative flex-grow"><canvas id="localizacaoChart"></canvas><div id="localizacaoChart-no-data" class="no-data-placeholder hidden">Nenhum dado</div></div></div>
+            <div class="chart-card p-4 rounded-lg shadow-lg flex flex-col h-full"><h2 class="text-xl font-semibold mb-4 text-white"><i class="fas fa-tags mr-2 text-purple-400"></i>Top Chamados por Categoria</h2><div class="relative flex-grow"><canvas id="categoriaChart"></canvas><div id="categoriaChart-no-data" class="no-data-placeholder hidden">Nenhum dado</div></div></div>
+            <div class="chart-card p-4 rounded-lg shadow-lg flex flex-col h-full"><h2 class="text-xl font-semibold mb-4 text-white"><i class="fas fa-users mr-2 text-green-400"></i>Maiores Requisitantes</h2><div class="relative flex-grow"><canvas id="requisitanteChart"></canvas><div id="requisitanteChart-no-data" class="no-data-placeholder hidden">Nenhum dado</div></div></div>
+        </div>
+        
+        <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-50 hidden"><div class="spinner w-12 h-12 rounded-full"></div><p class="text-white text-xl mt-4">A carregar dados...</p></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_URL = 'http://127.0.0.1:5000/api/dashboard-data';
+            const AUTO_REFRESH_INTERVAL = 300000; 
+
+            const requisitanteInput = document.getElementById('filter-requisitante');
+            const tecnicoInput = document.getElementById('filter-tecnico');
+            const statusSelect = document.getElementById('filter-status');
+            const startDateInput = document.getElementById('filter-start-date');
+            const endDateInput = document.getElementById('filter-end-date');
+            const clearFiltersBtn = document.getElementById('clear-filters');
+            const metricsGrid = document.getElementById('metrics-grid');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const lastUpdatedEl = document.getElementById('last-updated');
+            let charts = {};
+            let refreshIntervalId;
+
+            Chart.defaults.color = '#c9d1d9';
+            Chart.defaults.borderColor = '#30363d';
+            Chart.register(ChartDataLabels);
+
+            const chartColors = ['#2563eb', '#16a34a', '#f97316', '#dc2626', '#9333ea', '#db2777', '#64748b'];
+
+            const createOrUpdateChart = (ctx, type, labels, data, label, filterId) => {
+                const chartId = ctx.canvas.id;
+                const noDataEl = document.getElementById(`${chartId}-no-data`);
+                
+                if (!data || data.length === 0) {
+                    ctx.canvas.classList.add('hidden');
+                    if (charts[chartId]) charts[chartId].destroy();
+                    charts[chartId] = null;
+                    noDataEl.classList.remove('hidden');
+                    return;
+                }
+                ctx.canvas.classList.remove('hidden');
+                noDataEl.classList.add('hidden');
+                
+                const datasets = [{ label, data, backgroundColor: chartColors, borderColor: '#161b22', borderWidth: 2 }];
+                if (type === 'line' || (type === 'bar' && ['chamadosPorMesChart', 'localizacaoChart'].includes(chartId))) {
+                    datasets[0].backgroundColor = chartColors[0];
+                    datasets[0].borderColor = chartColors[0];
+                    datasets[0].tension = 0.3;
+                }
+
+                const options = {
+                    indexAxis: (type === 'bar' && !['chamadosPorMesChart', 'localizacaoChart'].includes(chartId)) ? 'y' : 'x',
+                    maintainAspectRatio: false, responsive: true,
+                    onClick: (event, elements) => {
+                        if (elements.length > 0 && filterId) {
+                            const clickedLabel = labels[elements[0].index];
+                            const filterElement = document.getElementById(filterId);
+                            if (filterElement && clickedLabel.toLowerCase() !== 'outros') {
+                                filterElement.value = clickedLabel;
+                                fetchDataAndUpdateDashboard();
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: (type === 'pie'), position: 'right' },
+                        tooltip: { backgroundColor: '#0d1117', padding: 12, cornerRadius: 6 },
+                        datalabels: {
+                            color: '#fff', 
+                            anchor: (type === 'bar' && !['chamadosPorMesChart', 'localizacaoChart'].includes(chartId)) ? 'end' : 'center',
+                            align: (type === 'bar' && !['chamadosPorMesChart', 'localizacaoChart'].includes(chartId)) ? 'end' : 'center',
+                            font: { weight: 'bold', size: 14 },
+                            formatter: (value, context) => {
+                                if (context.chart.config.type === 'pie') {
+                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    return total > 0 ? (value / total * 100).toFixed(1) + '%' : '0%';
+                                }
+                                return value > 0 ? value : '';
+                            }
+                        }
+                    },
+                    scales: (type === 'bar' || type === 'line') ? { y: { beginAtZero: true, grid: { color: '#30363d' } }, x: { grid: { display: false } } } : {}
+                };
+
+                if (charts[chartId]) {
+                    charts[chartId].data.labels = labels;
+                    charts[chartId].data.datasets[0].data = data;
+                    charts[chartId].options = options;
+                    charts[chartId].update();
+                } else {
+                    charts[chartId] = new Chart(ctx, { type, data: { labels, datasets }, options });
+                }
+            };
+
+            const fetchDataAndUpdateDashboard = async () => {
+                loadingOverlay.classList.remove('hidden');
+                const params = new URLSearchParams({ 
+                    requisitante: requisitanteInput.value, 
+                    tecnico: tecnicoInput.value,
+                    status: statusSelect.value,
+                    start_date: startDateInput.value,
+                    end_date: endDateInput.value
+                });
+                
+                try {
+                    const response = await fetch(`${API_URL}?${params.toString()}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const result = await response.json();
+                    updateMetrics(result.metrics);
+                    updateCharts(result.charts);
+                    lastUpdatedEl.textContent = `Atualizado: ${new Date().toLocaleTimeString('pt-BR')}`;
+                } catch (error) {
+                    console.error('Falha ao carregar dados:', error);
+                    metricsGrid.innerHTML = `<div class="col-span-full text-center text-red-400 p-4 rounded-lg">Falha ao carregar dados. Verifique a conexão com a API e se o backend está em execução.</div>`;
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                }
+            };
+
+            const updateMetrics = (metrics) => {
+                metricsGrid.innerHTML = `
+                    <div class="metric-card p-4 rounded-lg" style="border-left-color: #64748b;"><h3 class="text-gray-400 text-lg"><i class="fas fa-ticket-alt mr-2"></i>Total</h3><p class="text-3xl font-bold">${metrics['total-chamados'] || 0}</p></div>
+                    <div class="metric-card p-4 rounded-lg" style="border-left-color: #3b82f6;"><h3 class="text-gray-400 text-lg"><i class="fas fa-calendar-day mr-2"></i>Abertos no Dia</h3><p class="text-3xl font-bold">${metrics['chamados-abertos-dia'] || 0}</p></div>
+                    <div class="metric-card p-4 rounded-lg" style="border-left-color: #8b5cf6;"><h3 class="text-gray-400 text-lg"><i class="fas fa-star mr-2"></i>Novos</h3><p class="text-3xl font-bold">${metrics['chamados-novos'] || 0}</p></div>
+                    <div class="metric-card p-4 rounded-lg" style="border-left-color: #f97316;"><h3 class="text-gray-400 text-lg"><i class="fas fa-user-tag mr-2"></i>Atribuídos</h3><p class="text-3xl font-bold">${metrics['total-atribuido'] || 0}</p></div>
+                    <div class="metric-card p-4 rounded-lg" style="border-left-color: #f59e0b;"><h3 class="text-gray-400 text-lg"><i class="fas fa-pause-circle mr-2"></i>Pendentes</h3><p class="text-3xl font-bold">${metrics['total-pendente'] || 0}</p></div>
+                    <div class="metric-card p-4 rounded-lg" style="border-left-color: #16a34a;"><h3 class="text-gray-400 text-lg"><i class="fas fa-check-circle mr-2"></i>Resolvidos</h3><p class="text-3xl font-bold">${metrics['total-resolvido'] || 0}</p></div>
+                `;
+            };
+
+            const updateCharts = (chartData) => {
+                const { categoria, requisitante, tipos, localizacao, chamados_por_mes } = chartData;
+                const filteredCategoriaLabels = [];
+                const filteredCategoriaData = [];
+                if (categoria && categoria.labels) {
+                    categoria.labels.forEach((label, index) => {
+                        if (label.toLowerCase() !== 'outros') {
+                            filteredCategoriaLabels.push(label);
+                            filteredCategoriaData.push(categoria.data[index]);
+                        }
+                    });
+                }
+                createOrUpdateChart(document.getElementById('categoriaChart').getContext('2d'), 'bar', filteredCategoriaLabels, filteredCategoriaData, 'Categorias', null);
+                createOrUpdateChart(document.getElementById('requisitanteChart').getContext('2d'), 'pie', requisitante.labels, requisitante.data, 'Requisitantes', 'filter-requisitante');
+                createOrUpdateChart(document.getElementById('tiposChart').getContext('2d'), 'bar', tipos.labels, tipos.data, 'Status', 'filter-status');
+                createOrUpdateChart(document.getElementById('localizacaoChart').getContext('2d'), 'bar', localizacao.labels, localizacao.data, 'Localizações', null);
+                createOrUpdateChart(document.getElementById('chamadosPorMesChart').getContext('2d'), 'bar', chamados_por_mes.labels, chamados_por_mes.data, 'Chamados', null);
+            };
+            
+            let debounceTimer;
+            const allFilters = [requisitanteInput, tecnicoInput, statusSelect, startDateInput, endDateInput];
+            allFilters.forEach(el => {
+                const eventType = el.tagName === 'INPUT' && el.type === 'text' ? 'keyup' : 'change';
+                el.addEventListener(eventType, () => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(fetchDataAndUpdateDashboard, 500);
+                });
+            });
+
+            clearFiltersBtn.addEventListener('click', () => {
+                requisitanteInput.value = '';
+                tecnicoInput.value = '';
+                statusSelect.value = '';
+                startDateInput.value = '';
+                endDateInput.value = '';
+                fetchDataAndUpdateDashboard();
+            });
+
+            fetchDataAndUpdateDashboard();
+            refreshIntervalId = setInterval(fetchDataAndUpdateDashboard, AUTO_REFRESH_INTERVAL);
+        });
+    </script>
+</body>
+</html>
+

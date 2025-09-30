@@ -8,6 +8,8 @@ blinker==1.6.2
 # Bancos de dados
 PyMySQL==1.1.0
 psycopg2-binary==2.9.7
-# Para configurações de produção
+SQLAlchemy==2.0.21
+# Para configurações
 python-dotenv==1.0.0
-gunicorn==21.2.0
+# Para cache (opcional)
+redis==4.6.0

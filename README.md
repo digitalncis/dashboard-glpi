@@ -74,34 +74,9 @@ python app.py
 ```
 
 ### 5. Acessar o dashboard
-- **Interface principal**: `http://localhost:5001`
-- **Teste de conexão**: `http://localhost:5001/api/test-db`
-- **API de métricas**: `http://localhost:5001/api/metrics`
-
-## Deploy em Produção
-
-### Hospedar gratuitamente na internet:
-O dashboard pode ser hospedado **gratuitamente** em plataformas como:
-
-- **Render.com** (Recomendado): 750 horas/mês gratuitas
-- **Railway.app**: $5 crédito mensal
-- **Heroku**: Plano básico gratuito
-
-**Veja o guia completo em: [DEPLOY.md](DEPLOY.md)**
-
-### Configuração para produção:
-```bash
-# Usar variáveis de ambiente
-export FLASK_ENV=production
-export SECRET_KEY=sua_chave_secreta_forte
-export DB_HOST=seu_servidor_mysql.com
-export DB_USER=seu_usuario
-export DB_PASSWORD=sua_senha
-export DB_NAME=nome_banco_glpi
-
-# Rodar com Gunicorn
-gunicorn --bind 0.0.0.0:$PORT --workers 2 app:app
-```
+- **Interface principal**: `http://localhost:5000`
+- **Teste de conexão**: `http://localhost:5000/api/test-db`
+- **API de métricas**: `http://localhost:5000/api/metrics`
 
 ## Configuração do Banco de Dados
 
@@ -225,4 +200,4 @@ Para dúvidas ou problemas:
 
 ---
 
-**Desenvolvido para SESMA** - Dashboard GLPI Web Interface# dashboad_glpi
+**Desenvolvido para SESMA** - Dashboard GLPI Web Interface
