@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard GLPI - SESMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="logo-section">
+                <h1 class="logo">GLPI</h1>
+            </div>
+            
+            <!-- Filtros -->
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label for="categoria-filter">Categoria:</label>
+                    <select id="categoria-filter" class="filter-select">
+                        <option value="">Todos</option>
+                        <option value="hardware">Hardware</option>
+                        <option value="software">Software</option>
+                        <option value="rede">Rede</option>
+                        <option value="suporte">Suporte</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="status-filter">Status:</label>
+                    <select id="status-filter" class="filter-select">
+                        <option value="">Todos</option>
+                        <option value="aberto">Aberto</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="atribuido">Atribuído</option>
+                        <option value="fechado">Fechado</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="periodo-filter">Período:</label>
+                    <select id="periodo-filter" class="filter-select">
+                        <option value="7">Últimos 7 dias</option>
+                        <option value="30" selected>Últimos 30 dias</option>
+                        <option value="90">Últimos 90 dias</option>
+                        <option value="365">Último ano</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="requisitante-filter">Nome/Requisitante:</label>
+                    <input type="text" id="requisitante-filter" class="filter-input" placeholder="Digite o nome...">
+                </div>
+                
+                <button id="apply-filters" class="btn-filter">Aplicar Filtros</button>
+                <button id="clear-filters" class="btn-clear">Limpar</button>
+            </div>
+        </header>
+
+        <!-- Cards de Métricas -->
+        <div class="metrics-section">
+            <div class="metric-card total-chamados">
+                <div class="metric-value" id="total-chamados">1282</div>
+                <div class="metric-label">TOTAL CHAMADOS</div>
+            </div>
+            <div class="metric-card total-pendente">
+                <div class="metric-value" id="total-pendente">11</div>
+                <div class="metric-label">TOTAL PENDENTE</div>
+            </div>
+            <div class="metric-card total-atribuido">
+                <div class="metric-value" id="total-atribuido">26</div>
+                <div class="metric-label">TOTAL ATRIBUÍDO</div>
+            </div>
+            <div class="metric-card total-fechado">
+                <div class="metric-value" id="total-fechado">1203</div>
+                <div class="metric-label">TOTAL FECHADO</div>
+            </div>
+            <div class="metric-card chamados-novos">
+                <div class="metric-value" id="chamados-novos">3</div>
+                <div class="metric-label">CHAMADOS NOVOS</div>
+            </div>
+        </div>
+
+        <!-- Seção de Gráficos -->
+        <div class="charts-section">
+            <!-- Linha 1: Gráfico de chamados por requisitante e por categoria -->
+            <div class="chart-row">
+                <div class="chart-container half-width">
+                    <h3>Contagem de chamados por nome/requisitante</h3>
+                    <canvas id="chart-requisitante"></canvas>
+                </div>
+                <div class="chart-container half-width">
+                    <h3>Contagem de origem/requisitante por categoria</h3>
+                    <canvas id="chart-categoria"></canvas>
+                </div>
+            </div>
+
+            <!-- Linha 2: Gráfico por localização e gráfico pizza -->
+            <div class="chart-row">
+                <div class="chart-container half-width">
+                    <h3>Contagem de origem/requisitante por localização</h3>
+                    <canvas id="chart-localizacao"></canvas>
+                </div>
+                <div class="chart-container half-width">
+                    <div class="chart-with-details">
+                        <h3>Chamados TOTAL por tipo chamados</h3>
+                        <div class="pie-container">
+                            <canvas id="chart-tipos"></canvas>
+                            <div class="pie-legend">
+                                <div class="legend-item">
+                                    <span class="legend-color atribuidos"></span>
+                                    <span>Tipo Atribuidos</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-color requisitante"></span>
+                                    <span>Requisitante</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading overlay -->
+        <div id="loading-overlay" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <p>Carregando dados...</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

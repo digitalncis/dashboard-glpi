@@ -1,0 +1,2 @@
+# Especifica a versão do Python para Heroku
+python-3.11.6
