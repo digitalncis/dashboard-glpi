@@ -10,11 +10,11 @@ DB_TYPE = 'mysql'
 # IMPORTANTE: Configure esses dados para conectar ao banco GLPI
 # Dashboard requer configuração válida para funcionar
 MYSQL_CONFIG = {
-    'host': 'localhost',        # ← IP do seu servidor MySQL
+    'host': '10.26.0.19',        # ← IP do seu servidor MySQL
     'port': 3306,               # ← Porta do MySQL (normalmente 3306)
-    'user': 'SEU_USUARIO',      # ← Usuário do banco GLPI
-    'password': 'SUA_SENHA',    # ← Senha do banco GLPI  
-    'database': 'NOME_BANCO',   # ← Nome do banco GLPI (ex: glpi, glpidb)
+    'user': 'root',      # ← Usuário do banco GLPI
+    'password': '3128*',    # ← Senha do banco GLPI  
+    'database': 'glpi_db',   # ← Nome do banco GLPI (ex: glpi, glpidb)
     'charset': 'utf8mb4',
     'autocommit': True
 }
